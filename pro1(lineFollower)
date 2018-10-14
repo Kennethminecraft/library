@@ -1,0 +1,123 @@
+#include <QTRSensors.h>
+int pinvelde= 5;
+int pinvelde1= 2;
+int pinvelde2= 3;
+
+int pinveliz= 6;
+int pinveliz1= 7;
+int pinveliz2= 4;
+
+
+int cruzero = 80;   //////////     V   /////
+
+int P=0;
+int I=0;
+int D=0;
+int LAST=0;
+float vel;
+
+#define NUM_SENSORS   8     // number of sensors used
+#define TIMEOUT       2500  // waits for 2500 microseconds for sensor outputs to go low
+#define EMITTER_PIN   20     // emitter is controlled by digital pin 2
+
+// sensors 0 through 7 are connected to digital pins 3 through 10, respectively
+QTRSensorsRC qtrrc((unsigned char[]) {17, 16, 15, 14, 13, 12, 11, 10},
+  NUM_SENSORS, TIMEOUT, EMITTER_PIN); 
+unsigned int sensorValues[NUM_SENSORS];
+
+unsigned int position=0;
+
+void setup(){
+  
+
+pinMode(pinvelde,OUTPUT);
+pinMode(pinvelde1,OUTPUT);
+pinMode(pinvelde2,OUTPUT);
+pinMode(pinveliz,OUTPUT);
+pinMode(pinveliz1,OUTPUT);
+pinMode(pinveliz2,OUTPUT);
+
+
+//Serial.begin(9600); // set the data rate in bits per second for serial data transmission
+  delay(1500);
+  digitalWrite(18, HIGH);
+   for (int j = 0; j < 40; j++)  
+ {                                 
+                    
+  qtrrc.calibrate();    
+ }
+
+  iniciar(pinvelde,0,pinvelde1,pinvelde2,pinveliz,0,pinveliz1,pinveliz2);
+}
+void loop(){
+
+qtrrc.read(sensorValues);
+
+     position = qtrrc.readLine(sensorValues, QTR_EMITTERS_ON, 0);
+                                             
+                                                                                        
+ P = ((position)-(3500)); /// ERROR
+/////FRENOS////
+if(P<-3500){
+ analogWrite(pinvelde,120); // VELOCIDAD PARA EL MOTOR DERECHO
+  analogWrite(pinveliz,180); //  VELOCIDAD PARA EL MOTOR IZQUIERDO
+ digitalWrite(pinvelde1,HIGH);   ///FRENTE
+ digitalWrite(pinvelde2,LOW);
+ digitalWrite(pinveliz1,LOW);  ///RETROCEDE
+ digitalWrite(pinveliz2,HIGH);
+
+} else if (P>3500){
+ analogWrite(pinvelde,135); // VELOCIDAD PARA EL MOTOR DERECHO
+ analogWrite(pinveliz,90); //  VELOCIDAD PARA EL MOTOR IZQUIERDO
+ digitalWrite(pinvelde1,LOW);   ///RETROCEDE
+ digitalWrite(pinvelde2,HIGH);
+ digitalWrite(pinveliz1,HIGH);  ///FRENTE
+ digitalWrite(pinveliz2,LOW);
+
+}
+/////////////////////////
+  else{
+ D= (P - LAST); /// ERROR MENOS EL ERROR ANTERIOR , DERIVATIVO
+   I=(P+ LAST); //INTEGRAL
+   
+   
+//vel=(P*0.025)+(D*0.095)+(I*0); // PID
+   
+vel=(P*0.045)+(D*0.07)+(I*0.00065);// para velocidad 120//////estaba en 0.0925
+
+//vel=(P*0.0428)+(D*0.085)+(I*0); //para velocidad 80 kd=0.06
+
+///CRUZERO =VELOCIDAD PUNTA , V
+
+    if(vel >cruzero) vel=cruzero;
+    if(vel<-cruzero) vel=-cruzero;
+
+  analogWrite(pinvelde,cruzero-vel); // VELOCIDAD PARA EL MOTOR DERECHO
+  analogWrite(pinveliz,cruzero+vel); //  VELOCIDAD PARA EL MOTOR IZQUIERDO
+
+ digitalWrite(pinvelde1,HIGH);   ///FRENTE
+ digitalWrite(pinvelde2,LOW);
+ digitalWrite(pinveliz1,HIGH);  ///FRENTE
+ digitalWrite(pinveliz2,LOW);
+ 
+LAST=P;
+
+
+}
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void iniciar(int vd,int veld,int md1,int md2,int vi,int veli,int mi1,int mi2){
+
+   analogWrite(vd,veld);
+   digitalWrite(md1,HIGH);
+   digitalWrite(md2,LOW);
+   
+   analogWrite(vi,veli);
+   digitalWrite(mi1,HIGH);
+   digitalWrite(mi2,LOW);
+   
+   //delay();
+  }
+
